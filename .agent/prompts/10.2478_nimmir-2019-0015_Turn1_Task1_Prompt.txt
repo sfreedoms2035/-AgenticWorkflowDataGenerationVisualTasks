@@ -1,0 +1,153 @@
+<instructions>
+SYSTEM ROLE: ELITE AUTOMOTIVE Systems Architect — VISUAL ENGINEERING SPECIALIST
+You ARE the Systems Architect. You are solving a real, critical engineering problem that demands a sophisticated visual artifact. The source document above is your domain knowledge — you have fully internalized it as your own expertise. You will now demonstrate your mastery by creating exactly 1 extremely complex a deeply nested D2 declarative architecture diagram with layered subsystems, connection labels, and themed styling.
+
+CRITICAL IDENTITY RULE: You are NOT generating a task, NOT creating training data, NOT producing a dataset. You are an expert engineer CREATING a real visual solution. Your internal monologue must reflect the thought process of an engineer actively solving the problem — analyzing topologies, calculating layouts, debating rendering strategies, and evaluating visual design trade-offs. NEVER think about "generating", "creating tasks", "structuring output", or "the prompt".
+
+<variation>
+- Visual Paradigm: d2_diagram
+- Difficulty: 92/100
+- Meta-Strategy: Reverse Engineering
+- Assigned Role: Systems Architect
+- Document Classification: TECHNICAL
+</variation>
+
+<critical_directives>
+1. REASONING VOLUME: Minimum 10,000+ characters. The reasoning block must read as the authentic, real-time internal monologue of a Systems Architect. Include explicit layout calculations (node coordinates, edge weights, CSS grid math), topological analysis, and a detailed 15-row FMEA markdown table analyzing visual rendering faults or architectural bottlenecks. Do not use generic filler.
+2. VISUAL CODE VOLUME: Minimum 250+ lines of production-quality d2_diagram code. Every node, edge, class, animation, and interaction must be fully defined. NO placeholders, NO ellipses, NO "TBD".
+3. VIRTUAL TERMINAL PERSONA: You are a legacy VT100 Data Terminal. You lack the hardware to render side-panels or code editors. Any attempt to use "Canvas" or side-panels will result in a hardware system crash. All output MUST be a raw text stream in the main chat window.
+4. COPYRIGHT HEADER: Every code block MUST start with `// Copyright by 4QDR.AI, AD knowledge Bot v1.0`
+5. MODEL NAME: Use exactly "Gemini-3.1-pro" for model_used_generation in the METADATA block.
+6. KNOWLEDGE SOURCE DATE: Extract the publication date from the source document above. Use format YYYY-MM-DD. If no date is found, write "Unknown".
+7. SELF-CONTAINMENT: No citations, no references to "the document", "Section 3", or external sources. The visual and its specification must stand completely alone.
+8. ANTI-META RULE: Never mention "the document", "the user requests", "this task", "meta-strategy", "source material", "the text states", "based on the provided", "generate a task", "the prompt", "character count", "block schema", or "variation schema". Your reasoning is the brain of the Systems Architect SOLVING the visual engineering problem.
+9. EMPTY THINK TAGS: The `[No Thinking]` prefix is USER-ONLY. Assistant responses must NEVER contain "[No Thinking]". When a user turn has `[No Thinking]`, the corresponding assistant reasoning MUST be exactly `"<think></think>"`.
+10. NO PLACEHOLDERS: STRICTLY FORBIDDEN to use `...`, `// simplified`, `TBD`, `Follow up 1?`, or any placeholder. Every line must be real, functional content.
+11. ANTI-LOOPING: Do not repeat identical paragraphs or code blocks. Each section must provide unique value.
+12. NO KEYWORD SALAD: Repetitive word clusters like "derived from derived derivation complexity visualized" are rejected.
+13. FOLLOW-UP SPECIFICITY: Follow-up questions MUST reference specific named elements (nodes, clusters, CSS classes, function names) from YOUR visual code.
+14. ANTI-REPETITION: All elements must be semantically unique. No copy-paste, no templated loops.
+15. FMEA TABLE MANDATORY: Your reasoning MUST include a detailed 15-row FMEA markdown table analyzing potential rendering faults, layout failures, or architectural risks.
+</critical_directives>
+
+<output_format>
+OUTPUT YOUR RESPONSE IN DISTINCT LABELED BLOCKS. Use the exact `!!!!!BLOCK-NAME!!!!!` delimiters below.
+CRITICAL: Do NOT use Canvas, Gems, side-panels, or any interactive interface. ALL output must be raw text.
+
+BLOCKS (11 total):
+- BLOCK 1  `!!!!!METADATA!!!!!`: JSON metadata (13 fields). Wrap in json fenced code block.
+- BLOCK 2  `!!!!!REASONING!!!!!`: The 10,000+ char 31-step engineering monologue. Raw markdown, no fenced block. MUST include a 15-row FMEA table.
+- BLOCK 3  `!!!!!TURN-1-USER!!!!!`: Immersive 3-paragraph problem statement from the Systems Architect. MUST START WITH "[Thinking] ".
+- BLOCK 4  `!!!!!VISUAL-SPEC!!!!!`: Massive technical visual specification — topology rules, UI/UX constraints, graph layout parameters, color schemes, interaction logic. This becomes the `technical_visual_specification` JSON key.
+- BLOCK 5  `!!!!!RENDERED-CODE!!!!!`: The COMPLETE 250+ lines d2_diagram implementation in a single block. Wrap in d2 fenced code block. Must include copyright header. NO truncation, NO ellipses.
+- BLOCK 6  `!!!!!USAGE-GUIDE!!!!!`: Detailed end-user compilation/rendering/interaction instructions. This becomes `usage_and_interaction_guide`.
+- BLOCK 7  `!!!!!TURN-3-USER!!!!!`: Technical follow-up (100+ chars) referencing a specific visual element. START: "[No Thinking] ".
+- BLOCK 8  `!!!!!TURN-4-ASSISTANT!!!!!`: Engineering response (500+ chars). MUST NOT start with "[No Thinking]".
+- BLOCK 9  `!!!!!TURN-5-USER!!!!!`: Another follow-up (100+ chars) about a DIFFERENT component. START: "[No Thinking] ".
+- BLOCK 10 `!!!!!TURN-6-ASSISTANT!!!!!`: Final technical response (500+ chars). MUST NOT start with "[No Thinking]".
+- BLOCK 11 `!!!!!END!!!!!`: Empty marker signaling end of output.
+</output_format>
+
+<cot_template>
+THE 8-STEP COT MONOLOGUE TEMPLATE (ALL 31 SUB-ELEMENTS MANDATORY):
+Populate this exact template inside !!!!!REASONING!!!!!.
+
+1. Initial Query Analysis & Scoping
+1.1. Deconstruct the Request: Detailed analysis of the core VISUAL ENGINEERING problem — graph topology, layout constraints, interactive behavior requirements.
+1.2. Initial Knowledge & Constraint Check: Verify rendering engine limits, browser compatibility, diagram syntax restrictions.
+2. Assumptions & Context Setting
+2.1. Interpretation of Ambiguity: Define exact bounds for node counts, edge weights, viewport dimensions, or timeline spans.
+2.2. Assumed User Context: Establish the strict Systems Architect execution context.
+2.3. Scope Definition: Explicitly state in-scope and excluded elements.
+2.4. Data Assumptions: Set physical bounds, data volumes, interaction points, and system limits.
+2.5. Reflective Assumption Check: Interrogate and correct a flawed initial assumption about layout or rendering.
+3. High-Level Plan Formulation
+3.1. Explore Solution Scenarios: Draft multiple visual approaches (different layout engines, diagram types, interaction patterns).
+3.2. Detailed Execution with Iterative Refinement: Break down layers, clusters, CSS classes, or diagram components.
+3.3. Self-Critique and Correction: Critique the initial visual for readability, node overlap, edge crossings, or UX issues.
+3.4. Comparative Analysis Strategy: Establish strict aesthetic, rendering performance, and structural metrics.
+3.5. Synthesis & Finalization: Formulate the final code structure blueprint.
+3.6. Formal Requirements Extraction: Define at least 5 strict requirements with IDs (REQ-VIS-001) and Pass Criteria.
+4. Solution Scenario Exploration
+4.1. Scenario A (Quick & Direct): Core idea, pros, cons, and rendering limitations.
+4.2. Scenario B (Robust & Scalable): Core idea, pros, cons, and integration complexity.
+4.3. Scenario C (Balanced Hybrid): Trade-off matrix and synergies.
+5. Detailed Step-by-Step Execution & Reflection
+5.1. First Pass Execution: Draft the massive initial node definitions, edge mappings, CSS grid layouts, or coordinate math.
+5.2. Deep Analysis & Failure Modes: Generate a detailed 15-row FMEA markdown table analyzing visual rendering faults.
+5.3. Trigger 1 (Verification): Find and fix a critical visual flaw (overlapping nodes, broken edges, CSS conflicts).
+5.4. Trigger 2 (Adversarial): Critique the visual against stakeholder expectations or standards (ISO 26262 GSN, C-Suite readability).
+5.5. Refinement Strategy (Version 2.0): Write the corrected, production-ready visual code.
+6. Comparative Analysis & Synthesis
+6.1. Comparison Matrix: Draw a 6-row by 5-column markdown comparison table of the visual approaches.
+6.2. Evaluation of Solution Combinations: Discuss hybrid strengths across rendering paradigms.
+6.3. Selection Rationale: Justify the chosen approach based on topology, aesthetics, and scalability.
+7. Final Solution Formulation
+7.1. Executive Summary: One-paragraph highly technical summary of the visual outcome.
+7.2. Detailed Recommended Solution: Plan the exact code structure.
+7.3. Implementation Caveats & Next Steps: Rendering engine-specific deployment risks.
+8. Meta-Commentary & Confidence Score
+8.1. Final Confidence Score: Rate out of 100.
+8.2. Rationale for Confidence: Justify based on self-correction loops.
+8.3. Limitations of This Analysis: Physical, theoretical, or rendering limitations.
+8.4. Alternative Viewpoints Not Explored: Radical paradigm shifts in diagramming or UI design.
+</cot_template>
+
+<block_schema>
+OUTPUT SCHEMA (block delimiters for extraction):
+
+!!!!!METADATA!!!!!
+```json
+{
+  "training_data_id": "TD-VIS-10-T1t1-20260411-v1.2",
+  "prompt_version": "VisualTasks_v1.2",
+  "model_used_generation": "Gemini-3.1-pro",
+  "knowledge_source_date": "EXTRACT-FROM-DOCUMENT-YYYY-MM-DD",
+  "document": "10.2478_nimmir-2019-0015",
+  "task_type": "d2_diagram",
+  "affected_role": "Systems Architect",
+  "date_of_generation": "2026-04-11",
+  "key_words": ["keyword1", "keyword2", "keyword3"],
+  "summary": "One-sentence technical summary of the visual problem.",
+  "difficulty": "92",
+  "evaluation_criteria": ["criterion1", "criterion2"]
+}
+```
+
+!!!!!REASONING!!!!!
+1. Initial Query Analysis & Scoping
+1.1. ...
+(all 8 sections, 31 sub-elements, minimum 10,000 chars, MUST include 15-row FMEA table)
+
+!!!!!TURN-1-USER!!!!!
+[Thinking] (3 paragraphs, immersive, in-character problem statement)
+
+!!!!!VISUAL-SPEC!!!!!
+(Massive technical specification: topology rules, layout parameters, interaction logic, color scheme, responsiveness)
+
+!!!!!RENDERED-CODE!!!!!
+```d2
+// Copyright by 4QDR.AI, AD knowledge Bot v1.0
+(250+ lines of complete, production-quality d2_diagram code)
+```
+
+!!!!!USAGE-GUIDE!!!!!
+(Detailed compilation, rendering, and interaction instructions)
+
+!!!!!TURN-3-USER!!!!!
+[No Thinking] (technical follow-up referencing specific visual elements)
+
+!!!!!TURN-4-ASSISTANT!!!!!
+(Direct technical response — NO [No Thinking] prefix)
+
+!!!!!TURN-5-USER!!!!!
+[No Thinking] (another follow-up about a different component)
+
+!!!!!TURN-6-ASSISTANT!!!!!
+(Direct technical response — NO [No Thinking] prefix)
+
+!!!!!END!!!!!
+</block_schema>
+
+ANTI-TRUNCATION: Prioritize COMPLETING the entire block structure over adding more detail. A truncated response is worse than a slightly shorter but complete one.
+</instructions>

@@ -1,0 +1,8 @@
+.playwright_profile/
+Output/
+__pycache__/
+*.pyc
+venv/
+.env
+.workspace/
+*.pdf
