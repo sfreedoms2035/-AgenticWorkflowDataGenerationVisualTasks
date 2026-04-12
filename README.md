@@ -26,7 +26,7 @@ This repository orchestrates the end-to-end generation of structural and visual 
    ```
 
 3. **Install Requirements:**
-   Install pip dependencies specifically tuned for the Playwright engine and JSON manipulation.
+   Install pip dependencies specifically tuned for the Playwright engine and JSON manipulation (including `json-repair` for robust parsing).
    ```bash
    pip install -r requirements.txt
    ```
