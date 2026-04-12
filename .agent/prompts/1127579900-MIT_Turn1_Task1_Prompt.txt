@@ -106,11 +106,11 @@ OUTPUT SCHEMA — Follow every block exactly in this order. Do NOT add extra blo
 !!!!!METADATA!!!!!
 ```json
 {
-  "training_data_id": "TD-VIS-10-T1t1-20260411-v1.2",
+  "training_data_id": "TD-VIS-1127579900-MIT-T1t1-20260411-v1.2",
   "prompt_version": "VisualTasks_v1.2",
   "model_used_generation": "Gemini-3.1-pro",
   "knowledge_source_date": "EXTRACT-FROM-DOCUMENT-YYYY-MM-DD",
-  "document": "10.2478_nimmir-2019-0015",
+  "document": "1127579900-MIT",
   "task_type": "d2_diagram",
   "affected_role": "Systems Architect",
   "date_of_generation": "2026-04-11",

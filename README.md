@@ -31,6 +31,12 @@ This repository orchestrates the end-to-end generation of structural and visual 
    pip install -r requirements.txt
    ```
 
+   **Manual Installation:**
+   If you need to install the core JSON repair library manually:
+   ```bash
+   pip install json-repair
+   ```
+
 4. **Initialize Playwright:**
    Install the required Chromium binaries required by Playwright to navigate the Gemini Web UI.
    ```bash

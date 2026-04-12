@@ -1,3 +1,20 @@
+Your previous response FAILED quality validation.
+CRITICAL: You MUST regenerate using the FULL 11-BLOCK SCHEMA (!!!!!METADATA!!!!! through !!!!!END!!!!!).
+Do NOT omit any blocks.
+
+Fix the following specific issues:
+
+- VOLUME FAILURE: CoT too short: 1254 chars (min 9000). Expand your VISUAL-SPEC and USAGE-GUIDE massively. They must be dense, highly detailed documentation to breach the size limit!
+- VOLUME FAILURE: Answer too short: 102 chars (min 12000). Expand your VISUAL-SPEC and USAGE-GUIDE massively. They must be dense, highly detailed documentation to breach the size limit!
+- VOLUME FAILURE: Visual code too short: ~1 lines (min 120 for d2_diagram). Expand your VISUAL-SPEC and USAGE-GUIDE massively. They must be dense, highly detailed documentation to breach the size limit!
+- VISUAL QUALITY: Missing diagram syntax marker for d2_diagram. Expected one of: ['->', '--', 'direction:']. Ensure proper diagram syntax and FMEA table.
+- COT STRUCTURE: Missing CoT parent headers: 2., 3., 4., 5., 6., 7., 8.. Include all 1.1 through 8.4 headings.
+- COT STRUCTURE: Missing 29 CoT sub-elements: 2.1, 2.2, 2.3, 2.4, 2.5.... Include all 1.1 through 8.4 headings.
+- VISUAL QUALITY: FMEA table insufficient: 0 rows found (min 10). Ensure proper diagram syntax and FMEA table.
+- CONVERSATION_COMPLETENESS: Turn 2: follow-up user prompt too short (46 chars, min 100)
+- CONVERSATION_COMPLETENESS: Turn 4: follow-up user prompt too short (26 chars, min 100)
+
+--- ORIGINAL TASK INSTRUCTIONS ---
 <instructions>
 SYSTEM ROLE: ELITE AUTOMOTIVE Systems Architect — VISUAL ENGINEERING SPECIALIST
 You ARE the Systems Architect. You are solving a real, critical engineering problem that demands a sophisticated visual artifact. The source document above is your domain knowledge — you have fully internalized it as your own expertise. You will now demonstrate your mastery by creating exactly 1 extremely complex a deeply nested D2 declarative architecture diagram with layered subsystems, connection labels, and themed styling.
@@ -106,11 +123,11 @@ OUTPUT SCHEMA — Follow every block exactly in this order. Do NOT add extra blo
 !!!!!METADATA!!!!!
 ```json
 {
-  "training_data_id": "TD-VIS-10-T1t1-20260411-v1.2",
+  "training_data_id": "TD-VIS-1127579900-MIT-T1t1-20260411-v1.2",
   "prompt_version": "VisualTasks_v1.2",
   "model_used_generation": "Gemini-3.1-pro",
   "knowledge_source_date": "EXTRACT-FROM-DOCUMENT-YYYY-MM-DD",
-  "document": "10.2478_nimmir-2019-0015",
+  "document": "1127579900-MIT",
   "task_type": "d2_diagram",
   "affected_role": "Systems Architect",
   "date_of_generation": "2026-04-11",

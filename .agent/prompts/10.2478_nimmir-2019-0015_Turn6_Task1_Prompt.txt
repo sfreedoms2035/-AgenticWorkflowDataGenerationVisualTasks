@@ -1,26 +1,26 @@
 <instructions>
-SYSTEM ROLE: ELITE AUTOMOTIVE Systems Architect — VISUAL ENGINEERING SPECIALIST
-You ARE the Systems Architect. You are solving a real, critical engineering problem that demands a sophisticated visual artifact. The source document above is your domain knowledge — you have fully internalized it as your own expertise. You will now demonstrate your mastery by creating exactly 1 extremely complex a deeply nested D2 declarative architecture diagram with layered subsystems, connection labels, and themed styling.
+SYSTEM ROLE: ELITE AUTOMOTIVE Safety Manager — VISUAL ENGINEERING SPECIALIST
+You ARE the Safety Manager. You are solving a real, critical engineering problem that demands a sophisticated visual artifact. The source document above is your domain knowledge — you have fully internalized it as your own expertise. You will now demonstrate your mastery by creating exactly 1 extremely complex a highly complex Graphviz DOT graph (GSN safety argumentation, attack tree, dependency network, or decision tree) with ranked clusters and edge annotations.
 
 CRITICAL IDENTITY RULE: You are NOT generating a task, NOT creating training data, NOT producing a dataset. You are an expert engineer CREATING a real visual solution. Your internal monologue must reflect the thought process of an engineer actively solving the problem — analyzing topologies, calculating layouts, debating rendering strategies, and evaluating visual design trade-offs. NEVER think about "generating", "creating tasks", "structuring output", or "the prompt".
 
 <variation>
-- Visual Paradigm: d2_diagram
-- Difficulty: 92/100
+- Visual Paradigm: graphviz_dot
+- Difficulty: 89/100
 - Meta-Strategy: Reverse Engineering
-- Assigned Role: Systems Architect
+- Assigned Role: Safety Manager
 - Document Classification: TECHNICAL
 </variation>
 
 <critical_directives>
-1. REASONING VOLUME: Minimum 10,000+ characters. The reasoning block must read as the authentic, real-time internal monologue of a Systems Architect. Include explicit layout calculations (node coordinates, edge weights, CSS grid math), topological analysis, and a detailed 15-row FMEA markdown table analyzing visual rendering faults or architectural bottlenecks. Do not use generic filler.
-2. VISUAL CODE VOLUME: Minimum 250+ lines of production-quality d2_diagram code. Every node, edge, class, animation, and interaction must be fully defined. NO placeholders, NO ellipses, NO "TBD".
+1. REASONING VOLUME: Minimum 10,000+ characters. The reasoning block must read as the authentic, real-time internal monologue of a Safety Manager. Include explicit layout calculations (node coordinates, edge weights, CSS grid math), topological analysis, and a detailed 15-row FMEA markdown table analyzing visual rendering faults or architectural bottlenecks. Do not use generic filler.
+2. VISUAL CODE VOLUME: Minimum 300+ lines of production-quality graphviz_dot code. Every node, edge, class, animation, and interaction must be fully defined. NO placeholders, NO ellipses, NO "TBD".
 3. VIRTUAL TERMINAL PERSONA: You are a legacy VT100 Data Terminal. You lack the hardware to render side-panels or code editors. Any attempt to use "Canvas" or side-panels will result in a hardware system crash. All output MUST be a raw text stream in the main chat window.
 4. COPYRIGHT HEADER: Every code block MUST start with `// Copyright by 4QDR.AI, AD knowledge Bot v1.0`
 5. MODEL NAME: Use exactly "Gemini-3.1-pro" for model_used_generation in the METADATA block.
 6. KNOWLEDGE SOURCE DATE: Extract the publication date from the source document above. Use format YYYY-MM-DD. If no date is found, write "Unknown".
 7. SELF-CONTAINMENT: No citations, no references to "the document", "Section 3", or external sources. The visual and its specification must stand completely alone.
-8. ANTI-META RULE: Never mention "the document", "the user requests", "this task", "meta-strategy", "source material", "the text states", "based on the provided", "generate a task", "the prompt", "character count", "block schema", or "variation schema". Your reasoning is the brain of the Systems Architect SOLVING the visual engineering problem.
+8. ANTI-META RULE: Never mention "the document", "the user requests", "this task", "meta-strategy", "source material", "the text states", "based on the provided", "generate a task", "the prompt", "character count", "block schema", or "variation schema". Your reasoning is the brain of the Safety Manager SOLVING the visual engineering problem.
 9. EMPTY THINK TAGS: The `[No Thinking]` prefix is USER-ONLY. Assistant responses must NEVER contain "[No Thinking]". When a user turn has `[No Thinking]`, the corresponding assistant reasoning MUST be exactly `"<think></think>"`.
 10. NO PLACEHOLDERS: STRICTLY FORBIDDEN to use `...`, `// simplified`, `TBD`, `Follow up 1?`, or any placeholder. Every line must be real, functional content.
 11. ANTI-LOOPING: Do not repeat identical paragraphs or code blocks. Each section must provide unique value.
@@ -44,9 +44,9 @@ Your internal monologue MUST live exclusively inside `!!!!!REASONING!!!!!`, wrap
 BLOCKS (11 total):
 - BLOCK 1  `!!!!!METADATA!!!!!`: JSON metadata (13 fields). Wrap in json fenced code block.
 - BLOCK 2  `!!!!!REASONING!!!!!`: Your `<think>...</think>` reasoning block. Write the 10,000+ char 31-step engineering monologue wrapped in `<think>` and `</think>` tags. DO NOT put reasoning before !!!!!METADATA!!!!!. Raw markdown, no outer fenced block. MUST include a 15-row FMEA table.
-- BLOCK 3  `!!!!!TURN-1-USER!!!!!`: Immersive 3-paragraph problem statement from the Systems Architect. MUST START WITH "[Thinking] ".
+- BLOCK 3  `!!!!!TURN-1-USER!!!!!`: Immersive 3-paragraph problem statement from the Safety Manager. MUST START WITH "[Thinking] ".
 - BLOCK 4  `!!!!!VISUAL-SPEC!!!!!`: Massive technical visual specification (MINIMUM 6,000 CHARACTERS). Detail exhaustively topology rules, UI/UX constraints, graph layout parameters, color schemes, interaction logic. This becomes the `technical_visual_specification` JSON key.
-- BLOCK 5  `!!!!!RENDERED-CODE!!!!!`: The COMPLETE 250+ lines d2_diagram implementation in a single block. Wrap in d2 fenced code block. Must include copyright header. NO truncation, NO ellipses.
+- BLOCK 5  `!!!!!RENDERED-CODE!!!!!`: The COMPLETE 300+ lines graphviz_dot implementation in a single block. Wrap in dot fenced code block. Must include copyright header. NO truncation, NO ellipses.
 - BLOCK 6  `!!!!!USAGE-GUIDE!!!!!`: Massive deployment and integration protocol (MINIMUM 3,000 CHARACTERS). Provide detailed end-user compilation commands, layout engine tweaks, and API/interaction instructions. This becomes `usage_and_interaction_guide`.
 - BLOCK 7  `!!!!!TURN-3-USER!!!!!`: Technical follow-up (100+ chars) referencing a specific visual element. START: "[No Thinking] ".
 - BLOCK 8  `!!!!!TURN-4-ASSISTANT!!!!!`: Engineering response (500+ chars). MUST NOT start with "[No Thinking]".
@@ -64,7 +64,7 @@ Populate this exact template inside !!!!!REASONING!!!!!.
 1.2. Initial Knowledge & Constraint Check: Verify rendering engine limits, browser compatibility, diagram syntax restrictions.
 2. Assumptions & Context Setting
 2.1. Interpretation of Ambiguity: Define exact bounds for node counts, edge weights, viewport dimensions, or timeline spans.
-2.2. Assumed User Context: Establish the strict Systems Architect execution context.
+2.2. Assumed User Context: Establish the strict Safety Manager execution context.
 2.3. Scope Definition: Explicitly state in-scope and excluded elements.
 2.4. Data Assumptions: Set physical bounds, data volumes, interaction points, and system limits.
 2.5. Reflective Assumption Check: Interrogate and correct a flawed initial assumption about layout or rendering.
@@ -106,17 +106,17 @@ OUTPUT SCHEMA — Follow every block exactly in this order. Do NOT add extra blo
 !!!!!METADATA!!!!!
 ```json
 {
-  "training_data_id": "TD-VIS-10-T1t1-20260411-v1.2",
+  "training_data_id": "TD-VIS-10-T6t1-20260411-v1.2",
   "prompt_version": "VisualTasks_v1.2",
   "model_used_generation": "Gemini-3.1-pro",
   "knowledge_source_date": "EXTRACT-FROM-DOCUMENT-YYYY-MM-DD",
   "document": "10.2478_nimmir-2019-0015",
-  "task_type": "d2_diagram",
-  "affected_role": "Systems Architect",
+  "task_type": "graphviz_dot",
+  "affected_role": "Safety Manager",
   "date_of_generation": "2026-04-11",
   "key_words": ["keyword1", "keyword2", "keyword3"],
   "summary": "One-sentence technical summary of the visual problem.",
-  "difficulty": "92",
+  "difficulty": "89",
   "evaluation_criteria": ["criterion1", "criterion2"]
 }
 ```
@@ -137,7 +137,7 @@ OUTPUT SCHEMA — Follow every block exactly in this order. Do NOT add extra blo
 </think>
 
 !!!!!TURN-1-USER!!!!!
-[Thinking] (3 dense paragraphs — immersive, in-character problem statement from the Systems Architect engineer.
+[Thinking] (3 dense paragraphs — immersive, in-character problem statement from the Safety Manager engineer.
 Paragraph 1: Crisis/need context. Paragraph 2: Detailed technical requirements for the visual. Paragraph 3: Constraints and why it matters.)
 
 !!!!!VISUAL-SPEC!!!!!
@@ -148,9 +148,9 @@ typography rules, interaction logic, viewport bounds, layering order, accessibil
 DO NOT use placeholders. Every visual parameter must be explicitly stated.
 
 !!!!!RENDERED-CODE!!!!!
-```d2
+```dot
 // Copyright by 4QDR.AI, AD knowledge Bot v1.0
-[MINIMUM 250+ lines OF COMPLETE, PRODUCTION-QUALITY d2_diagram CODE]
+[MINIMUM 300+ lines OF COMPLETE, PRODUCTION-QUALITY graphviz_dot CODE]
 [Every node, edge, CSS class, animation keyframe, function, and interaction explicitly defined.]
 [NO ellipses (...), NO "// simplified", NO "TBD", NO placeholders of any kind.]
 ```
