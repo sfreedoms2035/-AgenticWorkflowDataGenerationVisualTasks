@@ -6,3 +6,6 @@ venv/
 .env
 .workspace/
 *.pdf
+.agent/prompts/
+Eval/
+Input/

@@ -576,20 +576,142 @@ def build_repair_prompt(validation_report, original_prompt_text):
     return "\n".join(lines)
 
 
+# ── Pause / Cooldown ─────────────────────────────────────────────────────────
+PAUSE_DURATION_RATE_LIMIT = 1800  # 30 minutes default for rate limit (Gemini Pro limit is often hours)
+PAUSE_DURATION_ERROR_13 = 600     # 10 minutes for Error 13 / frozen UI
+PAUSE_DURATION_CONSECUTIVE = 120  # 2 minutes for consecutive infra failures
+SUBPROCESS_TIMEOUT = 480          # 8 minute hard timeout for Playwright subprocess
+
+_consecutive_infra_failures = 0   # Track consecutive infrastructure failures
+
+
+def pipeline_pause(seconds, reason):
+    """Pause the pipeline with a visible countdown."""
+    minutes = seconds // 60
+    secs = seconds % 60
+    print(f"\n  {'='*60}")
+    print(f"  ⏸️  PIPELINE PAUSED — {reason}")
+    if minutes > 0:
+        print(f"  ⏳ Waiting {minutes}m {secs}s before resuming...")
+    else:
+        print(f"  ⏳ Waiting {secs}s before resuming...")
+    print(f"  {'='*60}")
+    
+    # Countdown in 30-second intervals
+    remaining = seconds
+    while remaining > 0:
+        mins_left = remaining // 60
+        secs_left = remaining % 60
+        print(f"  ⏳ Resuming in {mins_left}m {secs_left}s...", end='\r')
+        sleep_chunk = min(30, remaining)
+        time.sleep(sleep_chunk)
+        remaining -= sleep_chunk
+    
+    print(f"  ▶️  PIPELINE RESUMED — continuing processing...          ")
+    print(f"  {'='*60}\n")
+
+
+def parse_rate_limit_reset_time(stderr_text):
+    """Try to extract rate limit reset timestamp from Playwright stderr log.
+    Returns the number of seconds to wait, or None if not parseable.
+    """
+    import re as _re
+    from datetime import datetime, timedelta
+    
+    if not stderr_text:
+        return None
+    
+    # Look for the log line: [RateLimit] Reset time found: am 14. Apr., 01:52
+    match = _re.search(r'Reset time found:\s*(.+)', stderr_text)
+    if not match:
+        return None
+    
+    reset_str = match.group(1).strip()
+    
+    # Try to extract HH:MM from the string
+    time_match = _re.search(r'(\d{1,2}):(\d{2})', reset_str)
+    if not time_match:
+        return None
+    
+    reset_hour = int(time_match.group(1))
+    reset_min = int(time_match.group(2))
+    
+    now = datetime.now()
+    # Build reset datetime for today
+    reset_dt = now.replace(hour=reset_hour, minute=reset_min, second=0, microsecond=0)
+    
+    # If the reset time is earlier today, it must be tomorrow
+    if reset_dt <= now:
+        reset_dt += timedelta(days=1)
+    
+    wait_seconds = int((reset_dt - now).total_seconds())
+    
+    # Sanity check: don't wait more than 6 hours
+    if wait_seconds > 6 * 3600:
+        return None
+    
+    # Add 2 minute buffer for safety
+    wait_seconds += 120
+    
+    return wait_seconds
+
+
 # ── Execution Engine ─────────────────────────────────────────────────────────
 def run_playwright(pdf_path, prompt_file):
-    """Execute the Playwright script and return success boolean."""
+    """Execute the Playwright script and return status string.
+    
+    Returns:
+        True: Success
+        False: Generic failure
+        'SAFETY_REJECTION': Gemini safety filter triggered
+        'RATE_LIMIT': Rate limit detected (pipeline should pause)
+        'ERROR_13': Error 13 / frozen UI (pipeline should pause)
+    """
+    global _consecutive_infra_failures
     cmd = f'python "{PLAYWRIGHT_SCRIPT}" "{pdf_path}" "{prompt_file}"'
-    result = subprocess.run(cmd, shell=True, cwd=BASE_DIR, capture_output=True,
-                          text=True, encoding="utf-8", errors="replace")
-    if result.returncode != 0:
-        if result.stderr and ("Normally I can help with things like" in result.stderr or "139 chars" in result.stderr):
-            print(f"  ⚠️ Gemini Safety Rejection detected.")
-            return "SAFETY_REJECTION"
+    try:
+        result = subprocess.run(cmd, shell=True, cwd=BASE_DIR, capture_output=True,
+                              text=True, encoding="utf-8", errors="replace",
+                              timeout=SUBPROCESS_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        print(f"  ❌ Playwright subprocess timed out after {SUBPROCESS_TIMEOUT}s")
+        _consecutive_infra_failures += 1
+        return False
+    
+    if result.returncode == 0:
+        _consecutive_infra_failures = 0  # Reset on success
+        return True
+    
+    # Exit code 4 = Rate limit
+    if result.returncode == 4:
+        print(f"  🚫 RATE LIMIT detected by Playwright")
+        _consecutive_infra_failures += 1
+        # Try to extract reset time from stderr for smart wait
+        wait_seconds = parse_rate_limit_reset_time(result.stderr)
+        return {"status": "RATE_LIMIT", "wait_seconds": wait_seconds}
+    
+    # Exit code 5 = Error 13 / frozen UI
+    if result.returncode == 5:
+        print(f"  💀 ERROR 13 / FROZEN UI detected by Playwright")
+        _consecutive_infra_failures += 1
+        return "ERROR_13"
+    
+    # Exit code 2 = Canvas (existing behavior)
+    if result.returncode == 2:
         stderr_preview = result.stderr[-300:] if result.stderr else "No error output"
         print(f"  ❌ Playwright error (exit {result.returncode}): {stderr_preview}")
+        _consecutive_infra_failures += 1
         return False
-    return True
+    
+    # Safety rejection detection
+    if result.stderr and ("Normally I can help with things like" in result.stderr or "139 chars" in result.stderr):
+        print(f"  ⚠️ Gemini Safety Rejection detected.")
+        return "SAFETY_REJECTION"
+    
+    stderr_preview = result.stderr[-300:] if result.stderr else "No error output"
+    print(f"  ❌ Playwright error (exit {result.returncode}): {stderr_preview}")
+    _consecutive_infra_failures += 1
+    return False
 
 
 def run_validation(json_path, report_path=None):
@@ -702,6 +824,32 @@ def process_task(pdf_path, doc_short, doc_name, turn, task_idx,
             with open(p_path, 'w', encoding='utf-8') as f:
                 f.write(p_text)
             pw_result = run_playwright(pdf_path, p_path)
+
+        # ── Handle Rate Limit: pause pipeline ──
+        if isinstance(pw_result, dict) and pw_result.get("status") == "RATE_LIMIT":
+            smart_wait = pw_result.get("wait_seconds")
+            if smart_wait:
+                wait_mins = smart_wait // 60
+                print(f"  📅 Reset time detected — waiting {wait_mins} minutes until limit resets")
+                pipeline_pause(smart_wait, f"Gemini Pro rate limit reached (resets in ~{wait_mins}min)")
+            else:
+                pipeline_pause(PAUSE_DURATION_RATE_LIMIT, "Gemini rate limit reached (no reset time found, using 30min default)")
+            # Don't count this as a wasted attempt — retry the same attempt
+            gemini_attempts -= 1
+            continue
+
+        # ── Handle Error 13 / Frozen UI: pause pipeline ──
+        if pw_result == "ERROR_13":
+            pipeline_pause(PAUSE_DURATION_ERROR_13, "Gemini Error 13 / frozen interface")
+            # Don't count this as a wasted attempt — retry the same attempt
+            gemini_attempts -= 1
+            continue
+
+        # ── Handle consecutive infrastructure failures with escalating cooldown ──
+        if not pw_result and _consecutive_infra_failures >= 3:
+            cooldown = PAUSE_DURATION_CONSECUTIVE * (_consecutive_infra_failures - 2)
+            cooldown = min(cooldown, 600)  # Cap at 10 minutes
+            pipeline_pause(cooldown, f"Consecutive infrastructure failures ({_consecutive_infra_failures} in a row)")
 
         if not pw_result:
             print(f"  ❌ Playwright failed on attempt {gemini_attempts}")

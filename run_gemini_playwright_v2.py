@@ -336,16 +336,75 @@ def validate_and_save_json(llm_response, out_json_path, thinking_text=None):
         # 0. Clean repetition loops first
         llm_response = clean_repetitive_text(llm_response)
         
-        # 1. Primary Regex Extraction
-        blocks = extract_semantic_blocks(llm_response)
+        # 0a. Normalize escaped newlines to real newlines BEFORE extraction.
+        # Gemini sometimes outputs everything in single-line JSON escape format
+        # (using \\n instead of actual \n), which breaks the regex that requires
+        # delimiters at the start of a line.
+        normalized_response = llm_response.replace('\\\\n', '\n').replace('\\n', '\n')
+        
+        # 1. Primary Regex Extraction (try normalized first, then original)
+        blocks = extract_semantic_blocks(normalized_response)
+        
+        # If normalized extraction found more blocks, use it; otherwise try original
+        if len(blocks) < 3:
+            blocks_orig = extract_semantic_blocks(llm_response)
+            if len(blocks_orig) > len(blocks):
+                blocks = blocks_orig
         
         # 2. Heuristic Fallback if primary extraction failed
         if not blocks or len(blocks) < 5:
             log("⚠️ Insufficient semantic blocks found. Invoking heuristic recovery...")
-            h_blocks = heuristic_extract_blocks(llm_response)
+            h_blocks = heuristic_extract_blocks(normalized_response)
+            if not h_blocks:
+                h_blocks = heuristic_extract_blocks(llm_response)
             for k, v in h_blocks.items():
                 if k not in blocks or len(blocks[k]) < 50:
                     blocks[k] = v
+        
+        # 2a. REASONING RESCUE: If REASONING block swallowed other blocks
+        # (detected when REASONING exists but VISUAL-SPEC/RENDERED-CODE/USAGE-GUIDE are missing),
+        # re-extract blocks from inside the REASONING content itself.
+        reasoning_block = blocks.get("REASONING", "")
+        content_blocks_present = sum(1 for k in ["VISUAL-SPEC", "RENDERED-CODE", "USAGE-GUIDE"] 
+                                     if k in blocks and len(blocks[k]) > 50)
+        
+        if reasoning_block and len(reasoning_block) > 5000 and content_blocks_present < 2:
+            log("  [ReasoningRescue] REASONING block may have swallowed content blocks. Re-extracting...")
+            # Normalize the reasoning block's escaped newlines too
+            reasoning_normalized = reasoning_block.replace('\\\\n', '\n').replace('\\n', '\n')
+            inner_blocks = extract_semantic_blocks(reasoning_normalized)
+            if not inner_blocks:
+                inner_blocks = extract_semantic_blocks(reasoning_block)
+            
+            rescued_count = 0
+            for key in ["VISUAL-SPEC", "RENDERED-CODE", "USAGE-GUIDE", 
+                        "TURN-1-USER", "TURN-3-USER", "TURN-4-ASSISTANT", 
+                        "TURN-5-USER", "TURN-6-ASSISTANT"]:
+                if key in inner_blocks and len(inner_blocks[key]) > 50:
+                    if key not in blocks or len(blocks.get(key, "")) < 50:
+                        blocks[key] = inner_blocks[key]
+                        rescued_count += 1
+                        log(f"  [ReasoningRescue] Recovered {key} ({len(inner_blocks[key])} chars)")
+            
+            if rescued_count > 0:
+                # Trim the REASONING block to just the actual reasoning content
+                # (everything before the first rescued delimiter)
+                first_delimiter_pos = None
+                for key in inner_blocks:
+                    marker = f"!!!!!{key}!!!!!"
+                    pos = reasoning_normalized.find(marker)
+                    if pos == -1:
+                        # Try various escape patterns
+                        for variant in [f"\\!\\!\\!\\!\\!{key}\\!\\!\\!\\!\\!", f"!!!!{key}!!!!"]:
+                            pos = reasoning_normalized.find(variant)
+                            if pos >= 0:
+                                break
+                    if pos >= 0 and (first_delimiter_pos is None or pos < first_delimiter_pos):
+                        first_delimiter_pos = pos
+                
+                if first_delimiter_pos and first_delimiter_pos > 500:
+                    blocks["REASONING"] = reasoning_normalized[:first_delimiter_pos].strip()
+                    log(f"  [ReasoningRescue] Trimmed REASONING to {len(blocks['REASONING'])} chars (was {len(reasoning_block)})")
         
         if not blocks:
             log("❌ FATAL: No semantic blocks recovered even with heuristics.")
@@ -406,6 +465,61 @@ def validate_and_save_json(llm_response, out_json_path, thinking_text=None):
             """Remove normal and escaped think tags from content."""
             text = re.sub(r'\\?</?think\\?>', '', text, flags=re.IGNORECASE).strip()
             return text
+        
+        # 4a. TURN RENUMBERING NORMALIZER
+        # Gemini sometimes uses non-standard turn numbering (e.g., TURN-2, TURN-4, TURN-6
+        # instead of the canonical TURN-1, TURN-3-USER, TURN-4-ASSISTANT, TURN-5-USER, TURN-6-ASSISTANT).
+        # Detect and remap to canonical sequence so content isn't lost.
+        canonical_user_turns = ["TURN-1-USER", "TURN-3-USER", "TURN-5-USER"]
+        canonical_asst_turns = ["TURN-4-ASSISTANT", "TURN-6-ASSISTANT"]
+        canonical_all = set(canonical_user_turns + canonical_asst_turns)
+        
+        # Collect all TURN-* blocks present in the extraction
+        found_user_turns = sorted(
+            [k for k in blocks if re.match(r'TURN-\d+-USER', k)],
+            key=lambda x: int(re.search(r'\d+', x).group())
+        )
+        found_asst_turns = sorted(
+            [k for k in blocks if re.match(r'TURN-\d+-ASSISTANT', k)],
+            key=lambda x: int(re.search(r'\d+', x).group())
+        )
+        
+        # Check if any expected canonical turns are missing but we have non-canonical ones
+        user_missing = [t for t in canonical_user_turns if t not in blocks or len(blocks.get(t, "")) < 50]
+        asst_missing = [t for t in canonical_asst_turns if t not in blocks or len(blocks.get(t, "")) < 50]
+        
+        if (user_missing or asst_missing) and (found_user_turns or found_asst_turns):
+            # We have turn blocks but with wrong numbers — remap them
+            # Filter out any that are already in canonical position with real content
+            available_user = [k for k in found_user_turns if k not in canonical_all or len(blocks.get(k, "")) < 50]
+            available_asst = [k for k in found_asst_turns if k not in canonical_all or len(blocks.get(k, "")) < 50]
+            
+            # Also include non-canonical turns that have real content
+            available_user += [k for k in found_user_turns if k not in available_user and k not in canonical_user_turns]
+            available_asst += [k for k in found_asst_turns if k not in available_asst and k not in canonical_asst_turns]
+            
+            # Deduplicate while preserving order
+            seen = set()
+            available_user = [x for x in available_user if not (x in seen or seen.add(x))]
+            available_asst = [x for x in available_asst if not (x in seen or seen.add(x))]
+            
+            # Remap: assign available non-canonical content to missing canonical slots
+            for missing_key in user_missing:
+                # Find the first available user turn with substantial content
+                for avail_key in list(available_user):
+                    if avail_key != missing_key and len(blocks.get(avail_key, "")) >= 50:
+                        log(f"  [TurnRenumber] Remapping {avail_key} → {missing_key} ({len(blocks[avail_key])} chars)")
+                        blocks[missing_key] = blocks[avail_key]
+                        available_user.remove(avail_key)
+                        break
+            
+            for missing_key in asst_missing:
+                for avail_key in list(available_asst):
+                    if avail_key != missing_key and len(blocks.get(avail_key, "")) >= 50:
+                        log(f"  [TurnRenumber] Remapping {avail_key} → {missing_key} ({len(blocks[avail_key])} chars)")
+                        blocks[missing_key] = blocks[avail_key]
+                        available_asst.remove(avail_key)
+                        break
         
         turn1 = clean_semantic_block(blocks.get("TURN-1-USER", "Problem statement missing."))
         turn3 = clean_semantic_block(blocks.get("TURN-3-USER", "How does this handle edge cases?"))
@@ -1061,12 +1175,190 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
         # --- WAIT FOR GENERATION TO FINISH ---
         canvas_detected_during_gen = False
 
+        def detect_rate_limit(page):
+            """Detect Gemini rate-limit errors in the page UI chrome (NOT in generated content).
+            Returns False if no rate limit, or a dict with details if detected:
+              {'detected': True, 'signal': '...', 'reset_time': '...' or None}
+            
+            IMPORTANT: Only scans UI notification areas, NOT the model's generated response
+            text, to avoid false positives from technical content containing words like
+            'try again', 'capacity', 'please wait' etc.
+            """
+            try:
+                result = page.evaluate(r"""() => {
+                    // === STRATEGY: Scan ONLY Gemini UI chrome, NOT generated content ===
+                    // We target error banners, snackbars, notification areas, and
+                    // the bottom-of-chat info messages — never message-content.
+                    
+                    // Specific Gemini rate-limit phrases (multi-word, unlikely in tech text)
+                    const rateSignals = [
+                        // German Gemini Pro limit (exact from screenshot)
+                        'limit für das pro-modell erreicht',
+                        'du hast dein limit',
+                        'andere modelle verwendet',
+                        'zurückgesetzt wird',
+                        'limit für das pro modell',
+                        // English Gemini Pro limit
+                        'you\'ve reached your limit',
+                        'reached your limit for',
+                        'pro model limit',
+                        'limit will reset',
+                        'usage limit reached',
+                        // Generic rate limit (multi-word only)
+                        'rate limit exceeded',
+                        'rate limit reached',
+                        'too many requests',
+                        'quota exceeded',
+                        'resource exhausted',
+                    ];
+                    
+                    // Elements to scan: UI chrome only, explicitly EXCLUDING message-content
+                    const uiSelectors = [
+                        // Error/notification areas
+                        '.error-message', '.snackbar', 'mat-snack-bar-container',
+                        '[role="alert"]', '[role="status"]',
+                        // Gemini-specific UI elements
+                        '.chat-footer', '.model-info', '.usage-info',
+                        '.disclaimer', '.notice', '.warning-banner',
+                        // General notification areas (but NOT message-content)
+                        '[class*="notification"]', '[class*="toast"]',
+                        '[class*="snack"]', '[class*="alert"]',
+                        '[class*="banner"]', '[class*="limit"]',
+                        '[class*="warning"]', '[class*="error-bar"]',
+                        // Bottom-of-page info messages
+                        'footer', '.bottom-bar', '.info-bar',
+                    ];
+                    
+                    // Collect text from UI chrome elements
+                    let uiText = '';
+                    for (const sel of uiSelectors) {
+                        try {
+                            const els = document.querySelectorAll(sel);
+                            for (const el of els) {
+                                // Skip if inside a message-content (generated response)
+                                if (el.closest('message-content')) continue;
+                                if (el.closest('.response-container')) continue;
+                                uiText += ' ' + (el.innerText || '');
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    // Also check the very last non-message element in the chat
+                    // (Gemini sometimes shows rate limit as a system message)
+                    try {
+                        const chatMsgs = document.querySelectorAll('.conversation-container > *, .chat-history > *');
+                        if (chatMsgs.length > 0) {
+                            const lastEl = chatMsgs[chatMsgs.length - 1];
+                            if (!lastEl.querySelector('message-content')) {
+                                uiText += ' ' + (lastEl.innerText || '');
+                            }
+                        }
+                    } catch(e) {}
+                    
+                    const lower = uiText.toLowerCase();
+                    if (lower.trim().length === 0) return null;
+                    
+                    let matched = null;
+                    for (const sig of rateSignals) {
+                        if (lower.includes(sig)) { matched = sig; break; }
+                    }
+                    if (!matched) return null;
+                    
+                    // Try to extract reset time from the UI text
+                    let resetTime = null;
+                    // German: "bis das Limit am 14. Apr., 01:52 zurückgesetzt wird"
+                    const deMatch = uiText.match(/(?:am|bis)\s+(\d{1,2})\.\s*(\w+)\.?,?\s+(\d{1,2}:\d{2})/i);
+                    if (deMatch) resetTime = deMatch[0];
+                    // English: "resets on/at ..."
+                    if (!resetTime) {
+                        const enMatch = uiText.match(/(?:resets?\s+(?:on|at))\s+(\w+\s+\d{1,2},?\s+)?(\d{1,2}:\d{2})/i);
+                        if (enMatch) resetTime = enMatch[0];
+                    }
+                    // Bare time: "until HH:MM" or "bis HH:MM"
+                    if (!resetTime) {
+                        const timeMatch = uiText.match(/(?:until|bis)\s+(\d{1,2}:\d{2})/i);
+                        if (timeMatch) resetTime = timeMatch[0];
+                    }
+                    
+                    return { signal: matched, resetTime: resetTime };
+                }""")
+                if result:
+                    signal = result.get('signal', result) if isinstance(result, dict) else result
+                    reset_time = result.get('resetTime', None) if isinstance(result, dict) else None
+                    log(f"  [RateLimit] Rate limit signal detected: '{signal}'")
+                    if reset_time:
+                        log(f"  [RateLimit] Reset time found: {reset_time}")
+                    return {'detected': True, 'signal': signal, 'reset_time': reset_time}
+            except Exception as e:
+                log(f"  [RateLimit] Detection check failed (non-fatal): {e}")
+            return False
+
+        def detect_error_13_frozen(page):
+            """Detect Gemini Error 13 (frozen/unresponsive UI) or error dialog overlays.
+            Only scans UI chrome (dialogs, error banners), NOT generated content.
+            Returns True if a Gemini error dialog or frozen state is detected.
+            """
+            try:
+                result = page.evaluate(r"""() => {
+                    // === ONLY check dialog overlays and error banners ===
+                    // These are NEVER part of generated content
+                    
+                    // 1. Check for modal error dialogs
+                    const dialogs = document.querySelectorAll(
+                        'mat-dialog-container, [role="dialog"], [role="alertdialog"], .error-dialog, .modal-error'
+                    );
+                    for (const d of dialogs) {
+                        const t = (d.innerText || '').toLowerCase();
+                        // Only match if dialog text mentions error/failure keywords
+                        if (t.includes('error') || t.includes('fehler') || 
+                            t.includes('went wrong') || t.includes('schiefgelaufen') ||
+                            t.includes('try again') || t.includes('erneut versuchen')) {
+                            // Check for specific error numbers
+                            const numMatch = t.match(/(?:error|fehler)[\s:#]*(\d+)/i);
+                            if (numMatch) return 'error_' + numMatch[1];
+                            return 'error_dialog: ' + t.substring(0, 100);
+                        }
+                    }
+                    
+                    // 2. Check for error snackbars/toasts (these overlay the UI)
+                    const snackbars = document.querySelectorAll(
+                        'mat-snack-bar-container, .snackbar, [class*="snack"], [class*="toast"]'
+                    );
+                    for (const s of snackbars) {
+                        const t = (s.innerText || '').toLowerCase();
+                        if (t.includes('error') || t.includes('fehler') || 
+                            t.includes('couldn\'t generate') || t.includes('konnte nicht generieren') ||
+                            t.includes('unable to generate')) {
+                            return 'snackbar_error: ' + t.substring(0, 100);
+                        }
+                    }
+                    
+                    // 3. Check for error code in role="alert" elements only
+                    const alerts = document.querySelectorAll('[role="alert"]');
+                    for (const a of alerts) {
+                        if (a.closest('message-content')) continue;  // Skip generated content
+                        const t = (a.innerText || '').toLowerCase();
+                        const numMatch = t.match(/(?:error|fehler)[\s:#]*(\d+)/i);
+                        if (numMatch) return 'error_' + numMatch[1];
+                    }
+                    
+                    return null;
+                }""")
+                if result:
+                    log(f"  [Error13] UI error/freeze signal detected: '{result}'")
+                    return True
+            except Exception as e:
+                # If evaluate itself times out, the page might be truly frozen
+                log(f"  [Error13] Page may be frozen (evaluate failed): {e}")
+                return True
+            return False
+
         def wait_for_completion():
-            """Wait for Gemini to finish generating with Canvas detection and loop detection.
-            Returns: 'DONE', 'CANVAS', 'TIMEOUT', 'WORD_SALAD'
+            """Wait for Gemini to finish generating with Canvas, rate-limit, and error detection.
+            Returns: 'DONE', 'CANVAS', 'TIMEOUT', 'WORD_SALAD', 'RATE_LIMIT', 'ERROR_13'
             """
             nonlocal canvas_detected_during_gen
-            log("Waiting for generation to complete (with Canvas+loop detection)...")
+            log("Waiting for generation to complete (with Canvas+loop+ratelimit+error detection)...")
             finished_selectors = [
                 'button[aria-label*="Good response"]',
                 'button[aria-label*="Gute Antwort"]',
@@ -1085,6 +1377,7 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
             start_wait = time.time()
             rep_check_interval = 5
             canvas_check_counter = 0
+            stall_counter = 0  # Track consecutive cycles with no generation activity
 
             while time.time() - start_wait < max_wait:
                 # 0. Canvas check every ~30s (every 6 poll cycles)
@@ -1104,6 +1397,15 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
                                 break
                         canvas_detected_during_gen = True
                         return 'CANVAS'
+
+                # 0b. Rate limit + Error 13 check every ~30s
+                if canvas_check_counter % 6 == 3:  # Offset from canvas check
+                    if detect_rate_limit(page):
+                        log("  🚫 RATE LIMIT detected during generation!")
+                        return 'RATE_LIMIT'
+                    if detect_error_13_frozen(page):
+                        log("  💀 ERROR 13 / FROZEN UI detected during generation!")
+                        return 'ERROR_13'
 
                 # 1. Check for UI completion signal
                 try:
@@ -1184,6 +1486,18 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
             browser.close()
             return 'CANVAS'
 
+        # --- RATE LIMIT: signal pipeline to pause ---
+        if gen_status == 'RATE_LIMIT':
+            log("  [RateLimit] Rate limit detected — signaling pipeline to pause...")
+            browser.close()
+            return 'RATE_LIMIT'
+
+        # --- ERROR 13 / FROZEN UI: signal pipeline to pause ---
+        if gen_status == 'ERROR_13':
+            log("  [Error13] UI error/freeze detected — signaling pipeline to pause...")
+            browser.close()
+            return 'ERROR_13'
+
         # --- TIMEOUT: signal for infrastructure retry ---
         if gen_status == 'TIMEOUT':
             log("  [Timeout] Generation timed out — flagging infrastructure retry...")
@@ -1203,8 +1517,18 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
             browser.close()
             return 'TIMEOUT'
 
-        # --- POST-GENERATION: Double-check Canvas hasn't activated at end ---
+        # --- POST-GENERATION: Check for rate limit / errors after generation ---
         page.wait_for_timeout(1000)
+        if detect_rate_limit(page):
+            log("  [RateLimit] Rate limit detected AFTER generation — signaling pipeline to pause...")
+            browser.close()
+            return 'RATE_LIMIT'
+        if detect_error_13_frozen(page):
+            log("  [Error13] UI error detected AFTER generation — signaling pipeline to pause...")
+            browser.close()
+            return 'ERROR_13'
+
+        # --- POST-GENERATION: Double-check Canvas hasn't activated at end ---
         if detect_canvas_active(page):
             log("  [Canvas] Canvas detected AFTER generation — escaping before extraction...")
             escape_canvas(page)
@@ -1537,7 +1861,7 @@ if __name__ == "__main__":
     seconds = elapsed % 60
     log(f"TOTAL TIME: {minutes}m {seconds:.1f}s")
 
-    # Exit codes: 0=success, 1=failure, 2=canvas, 3=timeout
+    # Exit codes: 0=success, 1=failure, 2=canvas, 3=timeout, 4=rate_limit, 5=error_13
     if result == 'OK':
         sys.exit(0)
     elif result == 'CANVAS':
@@ -1546,5 +1870,11 @@ if __name__ == "__main__":
     elif result == 'TIMEOUT':
         log("EXIT: Generation timed out — pipeline should infrastructure-retry")
         sys.exit(3)
+    elif result == 'RATE_LIMIT':
+        log("EXIT: Rate limit detected — pipeline should pause before retrying")
+        sys.exit(4)
+    elif result == 'ERROR_13':
+        log("EXIT: Error 13 / frozen UI detected — pipeline should pause before retrying")
+        sys.exit(5)
     else:
         sys.exit(1)

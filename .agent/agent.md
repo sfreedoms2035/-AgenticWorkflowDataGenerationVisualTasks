@@ -40,8 +40,9 @@ python pipeline.py --render-preview   # Auto-open rendered visuals in browser af
 | Model Selection | Always selects Gemini Pro automatically |
 | Manual Steps | Zero — escalating timeouts with smart fallbacks |
 | JSON Validation | Validates JSON before writing, attempts surgical repair if invalid |
-| Exit Codes | 0 = valid JSON saved, 1 = failure |
+| Exit Codes | 0 = success, 1 = failure, 2 = canvas, 3 = timeout, 4 = rate limit, 5 = error 13 |
 | Logging | All output to stderr, stdout reserved for machine-readable data |
+| Subprocess Timeout | 900s (15 min) hard timeout prevents indefinite hangs |
 
 ## Retry Logic
 - **Max 3 Gemini attempts** per task
@@ -49,6 +50,12 @@ python pipeline.py --render-preview   # Auto-open rendered visuals in browser af
   - **Locally fixable** (JSON structure, missing tags, turn padding) → `auto_repair.py`
   - **Needs regeneration** (volume, CoT, immersion) → Gemini re-prompt with targeted repair prompt
 - Dashboard generates once per completed PDF (every 8 tasks)
+
+## Auto-Pause (Rate Limit & Error Recovery)
+- **Rate Limit (exit 4)**: Pauses pipeline for 10 minutes, then retries (attempt NOT consumed)
+- **Error 13 / Frozen UI (exit 5)**: Pauses pipeline for 10 minutes, then retries (attempt NOT consumed)
+- **Consecutive infra failures (≥3)**: Escalating cooldown (2-10 min) before next attempt
+- All pauses show a live countdown in the terminal
 
 ## PDF Classification
 PDFs are auto-classified as **Technical** or **Regulatory** based on keyword scoring:
