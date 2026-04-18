@@ -65,3 +65,19 @@ python pipeline.py --resume --render-preview
 
 ## Disclaimer & Terms
 Internal Agentic Toolkit. Designed for robust visual task dataset synthesis via generative AI endpoints.
+
+
+### Terms Mode and Deep Think Mode
+
+**To use Terms Mode (generates tasks based on autonomous driving terms instead of PDFs):**
+Place your terms list in `Input_terms/Terms.md`.
+```bash
+python pipeline.py --terms-mode
+```
+
+**To enable the Deep Think model (e.g., Gemini 2.0 Flash Thinking / Gemini Thinking):**
+Can be combined with any mode to enable advanced reasoning capabilities.
+```bash
+python pipeline.py --deep-think
+python pipeline.py --terms-mode --deep-think
+```
