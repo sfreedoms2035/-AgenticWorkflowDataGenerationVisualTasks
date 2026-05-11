@@ -677,7 +677,7 @@ def parse_rate_limit_reset_time(stderr_text):
 
 
 # ── Execution Engine ─────────────────────────────────────────────────────────
-def run_playwright(pdf_path, prompt_file, deep_think=False):
+def run_playwright(pdf_path, prompt_file, deep_think=False, terms_mode=False):
     """Execute the Playwright script and return status string.
     
     Returns:
@@ -691,6 +691,8 @@ def run_playwright(pdf_path, prompt_file, deep_think=False):
     cmd = f'python "{PLAYWRIGHT_SCRIPT}" "{pdf_path}" "{prompt_file}"'
     if deep_think:
         cmd += ' --deep-think'
+    if terms_mode:
+        cmd += f' --output-dir "{OUTPUT_JSON_TERMS_DIR}" --thinking-dir "{OUTPUT_THINK_TERMS_DIR}"'
     try:
         result = subprocess.run(cmd, shell=True, cwd=BASE_DIR, capture_output=True,
                               text=True, encoding="utf-8", errors="replace",
@@ -881,14 +883,14 @@ def process_task(pdf_path, doc_short, doc_name, turn, task_idx,
 
         # ── Step 2: Run Playwright ──
         print(f"  🌐 Gemini attempt {gemini_attempts}/{MAX_GEMINI_ATTEMPTS}...")
-        pw_result = run_playwright(effective_input if terms_mode else pdf_path, p_path, deep_think=DEEP_THINK_MODE)
+        pw_result = run_playwright(effective_input if terms_mode else pdf_path, p_path, deep_think=DEEP_THINK_MODE, terms_mode=terms_mode)
 
         if pw_result == "SAFETY_REJECTION":
             print(f"  ⚠️ Triggering soft retry...")
             p_text = build_generation_prompt(variation, turn, task_idx, doc_name, mode, is_soft_retry=True)
             with open(p_path, 'w', encoding='utf-8') as f:
                 f.write(p_text)
-            pw_result = run_playwright(effective_input if terms_mode else pdf_path, p_path, deep_think=DEEP_THINK_MODE)
+            pw_result = run_playwright(effective_input if terms_mode else pdf_path, p_path, deep_think=DEEP_THINK_MODE, terms_mode=terms_mode)
 
         # ── Handle Rate Limit: pause pipeline ──
         if isinstance(pw_result, dict) and pw_result.get("status") == "RATE_LIMIT":
