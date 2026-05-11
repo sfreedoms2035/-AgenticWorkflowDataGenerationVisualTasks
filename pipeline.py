@@ -871,11 +871,16 @@ def process_task(pdf_path, doc_short, doc_name, turn, task_idx,
             prompt_text = base_prompt_text
             p_path = prompt_path(doc_short, turn, task_idx, is_repair=False, terms_mode=terms_mode)
         else:
-            last_report = run_validation(json_out)
-            if last_report.get("overall_status") == "PASS":
-                break
-            prompt_text = build_repair_prompt(last_report, base_prompt_text)
-            p_path = prompt_path(doc_short, turn, task_idx, is_repair=True, terms_mode=terms_mode)
+            # If output file doesn't exist (previous attempt totally failed), re-use base prompt
+            if not os.path.exists(json_out):
+                prompt_text = base_prompt_text
+                p_path = prompt_path(doc_short, turn, task_idx, is_repair=False, terms_mode=terms_mode)
+            else:
+                last_report = run_validation(json_out)
+                if last_report.get("overall_status") == "PASS":
+                    break
+                prompt_text = build_repair_prompt(last_report, base_prompt_text)
+                p_path = prompt_path(doc_short, turn, task_idx, is_repair=True, terms_mode=terms_mode)
 
         os.makedirs(os.path.dirname(p_path), exist_ok=True)
         with open(p_path, 'w', encoding='utf-8') as f:
