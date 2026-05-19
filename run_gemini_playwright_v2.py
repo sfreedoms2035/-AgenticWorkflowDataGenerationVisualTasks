@@ -212,10 +212,7 @@ def clean_repetitive_text(text):
 CANVAS_DOM_SELECTORS = [
     'user-facing-canvas',
     'immersive-canvas-panel',
-    'div.canvas-container',
     'code-block-canvas',
-    '[data-test-id*="canvas"]',
-    'div[class*="immersive"]',
 ]
 
 CANVAS_TEXT_SIGNALS = [
@@ -232,21 +229,47 @@ def detect_canvas_active(page):
                 log(f"  [Canvas] Canvas DOM element detected: {sel}")
                 return True
 
-        # 2. Check for Canvas text signals in buttons/chips
+        # 2. Check for Canvas text signals in buttons/chips (NOT in generated content)
         result = page.evaluate("""() => {
-            const allText = document.body.innerText.toLowerCase();
-            const signals = ['open in canvas', 'in canvas öffnen', 'immersive-canvas', 'canvas panel'];
-            for (const sig of signals) {
-                if (allText.includes(sig)) return sig;
+            // Only check UI chrome elements — buttons, chips, panels — NOT message-content
+            const uiEls = document.querySelectorAll('button, [role="button"], mat-chip, [class*="chip"], [class*="panel-header"]');
+            for (const el of uiEls) {
+                if (el.closest('message-content')) continue;  // Skip generated content
+                const text = (el.innerText || '').toLowerCase();
+                if (text.includes('open in canvas') || text.includes('in canvas öffnen') || 
+                    text === 'canvas') {
+                    return 'canvas-ui-button: ' + text.substring(0, 50);
+                }
             }
-            // Also check for canvas-specific element attributes
-            const canvasEls = document.querySelectorAll('[class*="canvas"], [data-test-id*="canvas"]');
-            if (canvasEls.length > 0) return 'canvas-element-found';
+            // Check for the actual immersive canvas panel (split-screen layout)
+            const immersivePanels = document.querySelectorAll('immersive-canvas-panel, user-facing-canvas, code-block-canvas');
+            for (const p of immersivePanels) {
+                if (p.offsetParent !== null) return 'canvas-panel-visible';
+            }
             return null;
         }""")
         if result:
             log(f"  [Canvas] Canvas signal detected: {result}")
             return True
+
+        # 3. Check for Canvas iframes (goog*.usercontent.com/immersive_entry_chip/*)
+        for frame in page.frames:
+            frame_url = getattr(frame, 'url', '') or ''
+            if 'usercontent.com' in frame_url and ('immersive' in frame_url or 'canvas' in frame_url):
+                log(f"  [Canvas] Canvas iframe detected: {frame_url[:80]}")
+                return True
+
+        # 4. Check for Canvas in other browser tabs
+        try:
+            for ctx_page in page.context.pages:
+                if ctx_page != page:
+                    ctx_url = getattr(ctx_page, 'url', '') or ''
+                    if 'usercontent.com' in ctx_url or 'immersive' in ctx_url:
+                        log(f"  [Canvas] Canvas in another tab: {ctx_url[:80]}")
+                        return True
+        except Exception:
+            pass
+
     except Exception as e:
         log(f"  [Canvas] Detection check failed (non-fatal): {e}")
     return False
@@ -1322,7 +1345,7 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
             
             # Check if generation has started (stop button visible = prompt was sent)
             generation_started = False
-            for ssel in ['button[aria-label*="Stop generating"]', 'button[aria-label*="Generierung stoppen"]']:
+            for ssel in ['button[aria-label*="Stop generating"]', 'button[aria-label*="Generierung stoppen"]', 'button[aria-label*="Antwort stoppen"]']:
                 try:
                     stop_btn = page.locator(ssel)
                     if stop_btn.count() > 0 and stop_btn.first.is_visible():
@@ -1556,12 +1579,15 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
             finished_selectors = [
                 'button[aria-label*="Good response"]',
                 'button[aria-label*="Gute Antwort"]',
+                'button[aria-label="Kopieren"]',
+                'button[aria-label="Copy"]',
                 'button[aria-label*="Copy answer"]',
                 'button[aria-label*="Antwort kopieren"]'
             ]
             stop_selectors = [
                 'button[aria-label*="Stop generating"]',
                 'button[aria-label*="Generierung stoppen"]',
+                'button[aria-label*="Antwort stoppen"]',
                 'button:has(svg.stop-icon)',
                 'button:has(mat-icon:has-text("stop"))'
             ]
@@ -1699,6 +1725,7 @@ CRITICAL AVOIDANCE: DO NOT use "Canvas" mode, "Gems", or any interactive coding 
             for ssel in [
                 'button[aria-label*="Stop generating"]',
                 'button[aria-label*="Generierung stoppen"]',
+                'button[aria-label*="Antwort stoppen"]',
             ]:
                 try:
                     btn = page.locator(ssel)
