@@ -688,7 +688,8 @@ def run_playwright(pdf_path, prompt_file, deep_think=False, terms_mode=False):
         'ERROR_13': Error 13 / frozen UI (pipeline should pause)
     """
     global _consecutive_infra_failures
-    cmd = f'python "{PLAYWRIGHT_SCRIPT}" "{pdf_path}" "{prompt_file}"'
+    # Use sys.executable for cross-platform OS auto-detection (Windows, Linux, macOS)
+    cmd = f'"{sys.executable}" "{PLAYWRIGHT_SCRIPT}" "{pdf_path}" "{prompt_file}"'
     if deep_think:
         cmd += ' --deep-think'
     if terms_mode:
@@ -740,7 +741,8 @@ def run_playwright(pdf_path, prompt_file, deep_think=False, terms_mode=False):
 
 def run_validation(json_path, report_path=None):
     """Run validate_task.py and return the parsed report."""
-    cmd = f'python "{VALIDATE_SCRIPT}" "{json_path}"'
+    # Use sys.executable for cross-platform OS auto-detection (Windows, Linux, macOS)
+    cmd = f'"{sys.executable}" "{VALIDATE_SCRIPT}" "{json_path}"'
     if REQUIRE_THINKING:
         cmd += ' --require-thinking'
     if report_path:
@@ -755,7 +757,8 @@ def run_validation(json_path, report_path=None):
 
 def run_auto_repair(json_path):
     """Run auto_repair.py on a failed task."""
-    cmd = f'python "{AUTO_REPAIR_SCRIPT}" "{json_path}"'
+    # Use sys.executable for cross-platform OS auto-detection (Windows, Linux, macOS)
+    cmd = f'"{sys.executable}" "{AUTO_REPAIR_SCRIPT}" "{json_path}"'
     result = subprocess.run(cmd, shell=True, cwd=BASE_DIR, capture_output=True,
                           text=True, encoding="utf-8", errors="replace")
     try:
